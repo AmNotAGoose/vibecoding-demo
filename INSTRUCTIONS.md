@@ -810,3 +810,5 @@ updateLeaderboard();
 - [ ] `wins` persists across rounds
 - [ ] `updateLeaderboard()` called at script end and inside `showEndModal()`
 - [ ] `busy` and `gameActive` both enforced in `onCellClick()`
+
+DO NOT START A LOCAL HTTP SERVER TO TEST THIS. ASSUME THAT IF ALL OF STEP 25 CHECKS PASSES, YOU ARE FREE TO CONSIDER THE TASK FINISHED.
