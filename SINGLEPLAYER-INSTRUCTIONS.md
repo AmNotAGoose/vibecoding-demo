@@ -2,6 +2,11 @@
 
 You are building a fully self-contained Match-3 puzzle game in a **single HTML file** (no external JS libraries, no build tools). Follow every step below exactly. Do not deviate from the specified logic, structure, or styling.
 
+### Running and delivering the game
+
+- The result is **static HTML**: open `match3.html` directly in a browser (double-click or drag into a tab). **No dev server, bundler, or build step is required** for the game to work.
+- Keep the script as a **classic** `<script>` block (do **not** use `type="module"`). Inline handlers such as `onclick="initGame()"` expect `initGame` to exist as a **global** function; a top-level `function initGame() { … }` declaration achieves that. If you use only `const initGame = () => …`, you must also assign `window.initGame = initGame`.
+
 ---
 
 ## STEP 1 — File Structure
@@ -9,9 +14,11 @@ You are building a fully self-contained Match-3 puzzle game in a **single HTML f
 Create one file: `match3.html`. It must contain, in this order:
 
 1. `<!DOCTYPE html>` declaration
-2. `<head>` with charset, viewport meta, Google Fonts `<link>`, and a `<style>` block
+2. `<head>` with charset (`<meta charset="UTF-8">`), viewport meta (`width=device-width, initial-scale=1`), Google Fonts `<link>`, and a `<style>` block
 3. `<body>` with the full HTML layout
-4. A single `<script>` block at the bottom of `<body>` containing all game logic
+4. A single **non-module** `<script>` block at the bottom of `<body>` containing all game logic
+
+Optional but reasonable: wrap the document in `<html lang="en">` … `</html>` for accessibility.
 
 ---
 
@@ -77,7 +84,9 @@ Declare these on `:root`:
 
 ### `h1`
 - Font: DM Mono, `font-size: 13px`, `font-weight: 500`
-- `letter-spacing: 0.18em`, `text-transform: uppercase`
+- `letter-spacing: 0.18em`, `text-transfo
+
+rm: uppercase`
 - `color: var(--accent)`
 
 ### `#tagline`
@@ -150,6 +159,8 @@ animation: fall 0.2s cubic-bezier(0.22, 1, 0.36, 1);
   to   { transform: translateY(0); opacity: 1; }
 }
 ```
+
+> **Note:** Include this rule in the stylesheet as specified. The algorithm steps below do **not** require toggling the `falling` class unless you voluntarily extend the spec (e.g. mark newly spawned gems after `gravity()`). A correct minimal implementation can leave `falling` unused in JavaScript.
 
 ### `#bottom`
 - `display: flex`, `align-items: center`, `gap: 12px`
@@ -233,6 +244,13 @@ Build this exact DOM structure:
     button#new-btn [onclick="initGame()"] > "New Game"
 ```
 
+**Concrete HTML details:**
+
+- **`#tagline`:** Use a single element with `id="tagline"` (e.g. `<p id="tagline">` or `<div id="tagline">`). It only needs the text and the styles from Step 4.
+- **Buttons:** Use `<button type="button" …>` for both `Play Again` and `New Game` so they never act as submit buttons if the layout is ever wrapped in a `<form>`.
+- **`#board-wrap` children:** `#grid` must come **before** `#overlay` in the DOM so the grid paints underneath; `#overlay` uses `position: absolute` and a higher `z-index` to cover the board area inside the padded wrap.
+- **IDs:** Keep `id` values exactly as named (`score-val`, `moves-val`, `overlay-score`, etc.) so `getElementById` in the script matches without ambiguity.
+
 ---
 
 ## STEP 6 — JavaScript: Constants and State
@@ -249,6 +267,10 @@ let moves = 30;      // moves remaining (starts 30)
 let busy = false;    // true while async swap/resolve is in progress (blocks input)
 ```
 
+**Coordinate system:** `board` is indexed `board[row][col]` with `row = 0` at the **top** of the grid and `row = ROWS - 1` at the **bottom**. Column `0` is the left edge. This matches typical 2D grid loops (`r` then `c`).
+
+**Cell values:** After a match is processed, cleared cells are **`null`**. All other cells hold one of the `GEMS` strings. Do not leave cleared cells as `undefined` unless you treat them identically to `null` everywhere (the reference logic uses only `null`).
+
 ---
 
 ## STEP 7 — Function: `initGame()`
@@ -260,6 +282,7 @@ let busy = false;    // true while async swap/resolve is in progress (blocks inp
 2. Remove the `show` class from `#overlay` (hides the game-over panel)
 3. Generate a random 8×8 board: use `Array.from` to create a ROWS-length array of COLS-length arrays, each cell filled with a random item from `GEMS` using `Math.floor(Math.random() * GEMS.length)`
 4. Run this in a `do…while` loop: keep regenerating the entire board until `findMatches()` returns an empty array. This ensures the initial board has zero pre-existing matches.
+   - In code, treat “empty” as **`findMatches().length === 0`** (or assign the result to a variable and check `.length`).
 5. Call `render()`, `updateInfo()`, and `setMsg('')`
 
 ---
@@ -273,8 +296,8 @@ let busy = false;    // true while async swap/resolve is in progress (blocks inp
 2. Loop `r` from 0 to ROWS-1, and inside that loop `c` from 0 to COLS-1
 3. For each `[r, c]`, create a `<div>`:
    - `className = 'cell'`
-   - `textContent = board[r][c]`
-   - `dataset.r = r`, `dataset.c = c` (used for querying the cell DOM element later)
+   - `textContent = board[r][c]` — if the value can be `null` during intermediate states, coerce with **`board[r][c] ?? ''`** so the UI never shows the literal string `"null"`.
+   - `dataset.r` and `dataset.c`: set from numeric `r` / `c` (the DOM stores them as strings). **`getCell`** must query with the same string form, e.g. `` `[data-r="${r}"][data-c="${c}"]` ``.
    - `onclick = () => onCellClick(r, c)` (closure captures current r, c)
    - If `selected` is not null AND `selected[0] === r` AND `selected[1] === c`, add class `'selected'`
 4. Append each cell div to `#grid`
@@ -293,6 +316,8 @@ return document.querySelector(`[data-r="${r}"][data-c="${c}"]`);
 ```
 
 Used during match animation to add the `matched` class to the correct element before wiping the board.
+
+**Timing:** In `resolveMatches`, call `getCell` and add `'matched'` **before** `await delay(290)`, and do **not** call `render()` in between. That way the nodes from the last `render()` still exist, the pop animation runs on screen, then `gravity()` + `render()` rebuild the grid.
 
 ---
 
@@ -319,7 +344,7 @@ Used during match animation to add the `matched` class to the correct element be
    - Return
 7. If distance IS 1 (valid adjacent pair):
    - Set `selected = null`
-   - Call `doSwap(sr, sc, r, c)`
+   - Call `doSwap(sr, sc, r, c)` — **do not** `await` it here. The click handler stays synchronous; `doSwap` runs its async body in the background. Using `await` inside `onCellClick` would require making `onCellClick` async and changes the intended flow.
 
 ---
 
@@ -327,13 +352,15 @@ Used during match animation to add the `matched` class to the correct element be
 
 **Purpose:** Attempt to swap two adjacent cells. Reverse the swap if it produces no matches.
 
+**Declaration:** Implement as **`async function doSwap(r1, c1, r2, c2) { … }`** so you can use **`await resolveMatches()`** inside the valid-swap branch.
+
 **Steps:**
 
 1. Set `busy = true`
 2. Swap the two values in `board` using destructuring: `[board[r1][c1], board[r2][c2]] = [board[r2][c2], board[r1][c1]]`
 3. Call `render()` so the player sees the swap visually
-4. Call `findMatches()`:
-   - If it returns an **empty array** (invalid swap, no matches produced):
+4. Call `findMatches()` and store the result (e.g. `matches`):
+   - If **`matches.length === 0`** (invalid swap, no matches produced):
      - Swap the values back: `[board[r1][c1], board[r2][c2]] = [board[r2][c2], board[r1][c1]]`
      - Call `render()` to show the board restored
      - Call `setMsg('no match', 'bad')` to show red feedback text
@@ -343,9 +370,9 @@ Used during match animation to add the `matched` class to the correct element be
 5. If matches exist (valid swap):
    - Decrement `moves` by 1
    - Call `updateInfo()` to refresh the stat display
-   - `await resolveMatches()` (handles chain reactions)
-   - Set `busy = false`
-   - If `moves <= 0`, call `endGame()`
+   - **`await resolveMatches()`** (handles chain reactions) — `resolveMatches` must be declared **`async`** for this to be valid
+   - Set `busy = false` **only after** `resolveMatches` finishes (so input stays blocked through cascades)
+   - If `moves <= 0`, call `endGame()` **after** resolution completes, so the final score includes all chain clears from that move
 
 ---
 
@@ -361,14 +388,14 @@ Use a `Set` called `hit` to store unique cell indices encoded as `row * COLS + c
 - Loop `r` from 0 to ROWS-1
 - Loop `c` from 0 to `COLS - 3` inclusive (so there are at least 3 cells to the right)
 - Check: `board[r][c]` is truthy AND equals `board[r][c+1]` AND equals `board[r][c+2]`
-- If match found, extend it: increment a length counter `l` starting at 3, keep going right while `c + l < COLS` and `board[r][c+l]` equals the starting gem
+- If match found, extend it: set `l = 3`, then **`while (c + l < COLS && board[r][c + l] === board[r][c]) l++`** — the “starting gem” for comparison is always **`board[r][c]`** (the leftmost cell of the run)
 - Add all cells from column `c` to column `c+l-1` in row `r` to `hit` using the index formula
 
 **Vertical scan:**
 - Loop `c` from 0 to COLS-1
 - Loop `r` from 0 to `ROWS - 3` inclusive
 - Check: `board[r][c]` is truthy AND equals `board[r+1][c]` AND equals `board[r+2][c]`
-- If match found, extend downward: increment `l` from 3 while `r + l < ROWS` and `board[r+l][c]` equals the starting gem
+- If match found, extend downward: set `l = 3`, then **`while (r + l < ROWS && board[r + l][c] === board[r][c]) l++`** — compare to **`board[r][c]`** (the topmost cell of the vertical run)
 - Add all cells from row `r` to row `r+l-1` in column `c` to `hit`
 
 **Return:** `[...hit].map(i => [Math.floor(i / COLS), i % COLS])`
@@ -379,6 +406,8 @@ Use a `Set` called `hit` to store unique cell indices encoded as `row * COLS + c
 ## STEP 13 — Function: `resolveMatches()` (async)
 
 **Purpose:** Clear all matched gems, apply gravity, and repeat until no more matches remain (handles chain reactions).
+
+**Declaration:** **`async function resolveMatches() { … }`**. Use a loop such as **`while (true)`** with a **`break`** when `findMatches()` returns no cells, or an equivalent `do…while` — the important part is repeating the sequence until the board has no matches.
 
 **Steps (loop until no matches):**
 
@@ -405,14 +434,16 @@ Use a `Set` called `hit` to store unique cell indices encoded as `row * COLS + c
 1. Loop `c` from 0 to COLS-1
 2. For each column, set a pointer `empty = ROWS - 1` (starts at the bottom row)
 3. Loop `r` from `ROWS - 1` downward to 0:
-   - If `board[r][c]` is NOT null (it has a gem):
+   - If **`board[r][c] !== null`** (the cell holds a gem; cleared cells are **`null`** only):
      - Copy it down: `board[empty][c] = board[r][c]`
      - If `empty !== r`, set `board[r][c] = null` (only clear the source if it actually moved)
      - Decrement `empty`
-4. After the downward pass, all rows from index 0 to `empty` (inclusive) are unfilled gaps at the top of the column
-5. Fill those gaps: loop `r` from `empty` down to 0 and set `board[r][c]` to a new random gem from `GEMS`
+4. After the downward pass, rows **`0` through `empty` inclusive** are still empty at the top of that column (if any).
+5. Fill those gaps: **`for (let r = empty; r >= 0; r--)`** assign `board[r][c] = GEMS[Math.floor(Math.random() * GEMS.length)]`.
 
 > **How this works:** The `empty` pointer tracks the next available slot, starting from the bottom. Non-null gems are packed down to the `empty` slot, then `empty` moves up one. After the inner loop completes, any remaining positions above `empty` were null and get new random gems assigned.
+
+> **Edge case:** If the column was full of gems, after packing, **`empty` is `-1`**. The fill loop **`for (r = empty; r >= 0; r--)`** runs **zero** iterations — correct. If the column was entirely cleared, **`empty === ROWS - 1`** before filling and you fill every row — also correct.
 
 ---
 
@@ -422,7 +453,7 @@ Use a `Set` called `hit` to store unique cell indices encoded as `row * COLS + c
 
 **Steps:**
 1. Get the `#overlay` element
-2. Set the text of `#overlay-score` (queried inside the overlay) to `score`
+2. Set the text of `#overlay-score` to the final score — use **`String(score)`** (or template `` `${score}` ``) for `textContent`, since it always expects a string
 3. Add class `'show'` to `#overlay` (CSS changes `display` from `none` to `flex`)
 
 ---
@@ -432,8 +463,10 @@ Use a `Set` called `hit` to store unique cell indices encoded as `row * COLS + c
 **Purpose:** Sync the stat bar display with current `score` and `moves` values.
 
 **Steps:**
-1. `document.getElementById('score-val').textContent = score`
-2. `document.getElementById('moves-val').textContent = moves`
+1. `document.getElementById('score-val').textContent = String(score)` (or coerce similarly)
+2. `document.getElementById('moves-val').textContent = String(moves)`
+
+Numbers assign fine to `textContent` in browsers, but string coercion avoids surprises if types ever change.
 
 ---
 
@@ -470,13 +503,16 @@ initGame();
 
 This runs immediately when the script loads, populating the board and rendering the initial state.
 
+**Suggested function order (avoid “used before initialization” errors):** Define helpers first (`delay`, `findMatches`, `gravity`, `getCell`), then anything that calls them (`resolveMatches`, `render`, `updateInfo`, `setMsg`, `endGame`, `doSwap`, `onCellClick`), then **`initGame`**, with the final **`initGame();`** call last. If you use `const name = () => {}` instead of `function name() {}`, strict order matters because `const` is not hoisted.
+
 ---
 
 ## STEP 20 — Verification Checklist
 
 Before outputting the file, confirm every item below:
 
-- [ ] Everything is in one `.html` file — no external `.js` or `.css` files
+- [ ] Everything is in one `.html` file — no external `.js` or `.css` files; the file runs as static HTML (open directly in a browser)
+- [ ] Script is not `type="module"` unless `initGame` is explicitly exposed on `window` for inline `onclick`
 - [ ] The board is exactly 8 columns × 8 rows
 - [ ] There are exactly 6 gem types: `['🔴','🟠','🟡','🟢','🔵','🟣']`
 - [ ] The player starts with exactly 30 moves per game
@@ -492,3 +528,5 @@ Before outputting the file, confirm every item below:
 - [ ] Fonts load from Google Fonts: DM Mono and DM Sans
 - [ ] The `#overlay` is a child of `#board-wrap` so it sits directly on top of the grid using `position: absolute`
 - [ ] `#board-wrap` has `position: relative` so the overlay is positioned relative to it
+
+DO NOT START A LOCAL HTTP SERVER TO TEST THIS. ASSUME THAT IF ALL OF STEP 25 CHECKS PASSES, YOU ARE FREE TO CONSIDER THE TASK FINISHED.
