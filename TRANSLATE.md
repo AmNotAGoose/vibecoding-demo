@@ -422,3 +422,5 @@ After making all changes, confirm every item before shipping.
 - [ ] `updateLeaderboard()` desktop avatar label uses `'你'` for player, `'AI'` for AI
 - [ ] No CSS class names, IDs, JS variable names, function names, or `onclick` attributes have been changed
 - [ ] Game runs correctly on both desktop and mobile after all changes — open in a browser, resize to mobile width, and play a full round to confirm
+
+DO NOT START A LOCAL HTTP SERVER TO TEST THIS. ASSUME THAT IF ALL OF STEP 25 CHECKS PASSES, YOU ARE FREE TO CONSIDER THE TASK FINISHED.
