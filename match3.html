@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f0f13;
+      --surface: #1a1a22;
+      --surface2: #22222e;
+      --border: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.18);
+      --text: #f0eff4;
+      --text-muted: #7c7a8e;
+      --accent: #a78bfa;
+      --accent-glow: rgba(167,139,250,0.25);
+      --cell-size: 52px;
+      --gap: 4px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    #wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    h1 {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    #tagline {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    #stats {
+      display: flex;
+      gap: 2px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 28px;
+      gap: 2px;
+    }
+
+    .stat + .stat {
+      border-left: 1px solid var(--border);
+    }
+
+    .stat-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .stat-value {
+      font-family: 'DM Mono', monospace;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1;
+      min-width: 3ch;
+      text-align: center;
+    }
+
+    #score-val {
+      color: var(--accent);
+    }
+
+    #board-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      position: relative;
+    }
+
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(8, var(--cell-size));
+      grid-template-rows: repeat(8, var(--cell-size));
+      gap: var(--gap);
+    }
+
+    .cell {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      background: var(--surface2);
+      transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+      user-select: none;
+      position: relative;
+    }
+
+    .cell:hover {
+      transform: scale(1.07);
+      background: #2a2a38;
+      border-color: var(--border-strong);
+    }
+
+    .cell.selected {
+      border-color: var(--accent);
+      background: rgba(167,139,250,0.12);
+      transform: scale(1.1);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .cell.matched {
+      animation: pop 0.28s ease forwards;
+    }
+
+    @keyframes pop {
+      0%   { transform: scale(1); opacity: 1; }
+      40%  { transform: scale(1.25); opacity: 0.6; }
+      100% { transform: scale(0); opacity: 0; }
+    }
+
+    .cell.falling {
+      animation: fall 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes fall {
+      from { transform: translateY(calc(-1 * var(--cell-size))); opacity: 0.7; }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+
+    #bottom {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    #msg {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      min-height: 16px;
+      flex: 1;
+    }
+
+    #msg.bad { color: #f87171; }
+    #msg.good { color: #6ee7b7; }
+
+    #new-btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: transparent;
+      border: 1px solid rgba(167,139,250,0.35);
+      border-radius: 8px;
+      padding: 7px 16px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+
+    #new-btn:hover {
+      background: rgba(167,139,250,0.1);
+      border-color: var(--accent);
+    }
+
+    #new-btn:active {
+      transform: scale(0.97);
+    }
+
+    #overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      border-radius: 15px;
+      background: rgba(15,15,19,0.88);
+      backdrop-filter: blur(4px);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    #overlay.show {
+      display: flex;
+    }
+
+    #overlay-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    #overlay-score {
+      font-family: 'DM Mono', monospace;
+      font-size: 42px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    #overlay-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .overlay-btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--bg);
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 24px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .overlay-btn:hover {
+      opacity: 0.85;
+    }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <header>
+      <h1>Match Three</h1>
+      <p id="tagline">swap adjacent gems · clear 3 or more</p>
+    </header>
+    <div id="stats">
+      <div class="stat">
+        <span class="stat-label">Score</span>
+        <span class="stat-value" id="score-val">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Moves</span>
+        <span class="stat-value" id="moves-val">30</span>
+      </div>
+    </div>
+    <div id="board-wrap">
+      <div id="grid"></div>
+      <div id="overlay">
+        <div id="overlay-title">Game Over</div>
+        <div id="overlay-score">0</div>
+        <div id="overlay-sub">final score</div>
+        <button type="button" class="overlay-btn" onclick="initGame()">Play Again</button>
+      </div>
+    </div>
+    <div id="bottom">
+      <div id="msg"></div>
+      <button type="button" id="new-btn" onclick="initGame()">New Game</button>
+    </div>
+  </div>
+
+  <script>
+    const GEMS = ['🔴','🟠','🟡','🟢','🔵','🟣'];
+    const COLS = 8, ROWS = 8;
+    let board = [];
+    let selected = null;
+    let score = 0;
+    let moves = 30;
+    let busy = false;
+
+    function delay(ms) {
+      return new Promise(function (r) { setTimeout(r, ms); });
+    }
+
+    function findMatches() {
+      var hit = new Set();
+      var r, c, l;
+
+      for (r = 0; r < ROWS; r++) {
+        for (c = 0; c <= COLS - 3; c++) {
+          if (board[r][c] && board[r][c] === board[r][c + 1] && board[r][c] === board[r][c + 2]) {
+            l = 3;
+            while (c + l < COLS && board[r][c + l] === board[r][c]) l++;
+            for (var i = c; i < c + l; i++) {
+              hit.add(r * COLS + i);
+            }
+          }
+        }
+      }
+
+      for (c = 0; c < COLS; c++) {
+        for (r = 0; r <= ROWS - 3; r++) {
+          if (board[r][c] && board[r][c] === board[r + 1][c] && board[r][c] === board[r + 2][c]) {
+            l = 3;
+            while (r + l < ROWS && board[r + l][c] === board[r][c]) l++;
+            for (var j = r; j < r + l; j++) {
+              hit.add(j * COLS + c);
+            }
+          }
+        }
+      }
+
+      return Array.from(hit).map(function (i) {
+        return [Math.floor(i / COLS), i % COLS];
+      });
+    }
+
+    function gravity() {
+      var c, r, empty;
+      for (c = 0; c < COLS; c++) {
+        empty = ROWS - 1;
+        for (r = ROWS - 1; r >= 0; r--) {
+          if (board[r][c] !== null) {
+            board[empty][c] = board[r][c];
+            if (empty !== r) board[r][c] = null;
+            empty--;
+          }
+        }
+        for (r = empty; r >= 0; r--) {
+          board[r][c] = GEMS[Math.floor(Math.random() * GEMS.length)];
+        }
+      }
+    }
+
+    function getCell(r, c) {
+      return document.querySelector('[data-r="' + r + '"][data-c="' + c + '"]');
+    }
+
+    async function resolveMatches() {
+      while (true) {
+        var matches = findMatches();
+        if (matches.length === 0) break;
+
+        score += matches.length * 10;
+        updateInfo();
+
+        for (var i = 0; i < matches.length; i++) {
+          var r = matches[i][0];
+          var c = matches[i][1];
+          var el = getCell(r, c);
+          if (el) el.classList.add('matched');
+          board[r][c] = null;
+        }
+
+        await delay(290);
+        gravity();
+        render();
+        await delay(210);
+      }
+    }
+
+    function render() {
+      var grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      var r, c, div;
+      for (r = 0; r < ROWS; r++) {
+        for (c = 0; c < COLS; c++) {
+          div = document.createElement('div');
+          div.className = 'cell';
+          div.textContent = board[r][c] ?? '';
+          div.dataset.r = String(r);
+          div.dataset.c = String(c);
+          div.onclick = (function (rr, cc) {
+            return function () { onCellClick(rr, cc); };
+          })(r, c);
+          if (selected && selected[0] === r && selected[1] === c) {
+            div.classList.add('selected');
+          }
+          grid.appendChild(div);
+        }
+      }
+    }
+
+    function updateInfo() {
+      document.getElementById('score-val').textContent = String(score);
+      document.getElementById('moves-val').textContent = String(moves);
+    }
+
+    function setMsg(text, cls) {
+      if (cls === undefined) cls = '';
+      var el = document.getElementById('msg');
+      el.textContent = text;
+      el.className = cls;
+    }
+
+    function endGame() {
+      var overlay = document.getElementById('overlay');
+      document.getElementById('overlay-score').textContent = String(score);
+      overlay.classList.add('show');
+    }
+
+    async function doSwap(r1, c1, r2, c2) {
+      busy = true;
+      [board[r1][c1], board[r2][c2]] = [board[r2][c2], board[r1][c1]];
+      render();
+
+      var matches = findMatches();
+      if (matches.length === 0) {
+        [board[r1][c1], board[r2][c2]] = [board[r2][c2], board[r1][c1]];
+        render();
+        setMsg('no match', 'bad');
+        setTimeout(function () { setMsg(''); }, 900);
+        busy = false;
+        return;
+      }
+
+      moves -= 1;
+      updateInfo();
+      await resolveMatches();
+      busy = false;
+      if (moves <= 0) endGame();
+    }
+
+    function onCellClick(r, c) {
+      if (busy || moves <= 0) return;
+
+      if (selected === null) {
+        selected = [r, c];
+        render();
+        return;
+      }
+
+      var sr = selected[0];
+      var sc = selected[1];
+
+      if (sr === r && sc === c) {
+        selected = null;
+        render();
+        return;
+      }
+
+      var dist = Math.abs(sr - r) + Math.abs(sc - c);
+      if (dist !== 1) {
+        selected = [r, c];
+        render();
+        return;
+      }
+
+      selected = null;
+      doSwap(sr, sc, r, c);
+    }
+
+    function initGame() {
+      score = 0;
+      moves = 30;
+      selected = null;
+      busy = false;
+      document.getElementById('overlay').classList.remove('show');
+
+      do {
+        board = Array.from({ length: ROWS }, function () {
+          return Array.from({ length: COLS }, function () {
+            return GEMS[Math.floor(Math.random() * GEMS.length)];
+          });
+        });
+      } while (findMatches().length > 0);
+
+      render();
+      updateInfo();
+      setMsg('');
+    }
+
+    initGame();
+  </script>
+</body>
+</html>
