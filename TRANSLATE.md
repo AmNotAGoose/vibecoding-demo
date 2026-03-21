@@ -168,7 +168,31 @@ The score values and timer value inside `#mobile-bar` are numbers — leave them
 
 ---
 
-## Part 8 — AI board label (desktop only)
+## Part 8 — Mobile leaderboard strip (mobile only)
+
+**Location**: `<div id="mob-lb">` — only visible on screens ≤600px. Contains a title label and two entry names.
+
+### 8a — Strip title
+**Find**: `<span id="mob-lb-title">Leaderboard</span>`
+**Replace with**: `<span id="mob-lb-title">排行榜</span>`
+
+### 8b — Entry names (set by JavaScript, not static HTML)
+The `.mob-lb-name` text content (`—` initially) is overwritten by `updateLeaderboard()` at runtime. The translation for the player name is covered in Part 13e (JS). The entry name elements do not need changing in the HTML — only in the JS.
+
+The win count values (`0`) are numbers — leave them unchanged.
+
+---
+
+## Part 9 — AI mini-board label (mobile only)
+
+**Location**: `<div id="mob-ai-wrap">` — only visible on screens ≤600px.
+
+**Find**: `<span id="mob-ai-label">AI Board</span>`
+**Replace with**: `<span id="mob-ai-label">AI棋盘</span>`
+
+---
+
+## Part 10 — AI board label (desktop only)
 
 **Location**: Left `.side-panel` inside `#arena`. Only visible on desktop (hidden on mobile via CSS).
 
@@ -176,7 +200,7 @@ The `<div class="panel-label ai-label">AI</div>` does not need translating. Leav
 
 ---
 
-## Part 9 — Player board label (desktop only)
+## Part 11 — Player board label (desktop only)
 
 **Location**: Right `.side-panel` inside `#arena`. Only visible on desktop.
 
@@ -185,11 +209,11 @@ The `<div class="panel-label ai-label">AI</div>` does not need translating. Leav
 
 ---
 
-## Part 10 — Leaderboard (desktop only)
+## Part 12 — Leaderboard (desktop only)
 
 **Location**: `<div id="leaderboard">`. Only visible on desktop.
 
-### 10a — Title
+### 12a — Title
 **Find**: `<div id="lb-title">Leaderboard</div>`
 **Replace with**: `<div id="lb-title">排行榜</div>`
 
@@ -197,7 +221,7 @@ The rank labels `#1` and `#2` are universal — leave them unchanged.
 
 ---
 
-## Part 11 — New Game button
+## Part 13 — New Game button
 
 **Location**: `<div id="bottom">`.
 
@@ -206,11 +230,11 @@ The rank labels `#1` and `#2` are universal — leave them unchanged.
 
 ---
 
-## Part 12 — JavaScript strings
+## Part 14 — JavaScript strings
 
 All changes in this section are inside the `<script>` block. Replace only the quoted string values. Do not alter variable names, function calls, or surrounding logic.
 
-### 12a — "no match" feedback message
+### 14a — "no match" feedback message
 **Location**: Inside `doSwap()`.
 
 **Find**:
@@ -222,7 +246,7 @@ render(); sndNoMatch(); setMsg('no match', 'bad');
 render(); sndNoMatch(); setMsg('不匹配', 'bad');
 ```
 
-### 12b — Win outcome
+### 14b — Win outcome
 **Location**: Inside `showEndModal()`, the first branch.
 
 **Find**:
@@ -234,7 +258,7 @@ render(); sndNoMatch(); setMsg('不匹配', 'bad');
 { title = '你赢了！'; sub = '你这局得分超过了AI。'; cls = 'win';  wins.you++; sndWin(); }
 ```
 
-### 12c — Lose outcome
+### 14c — Lose outcome
 **Find**:
 ```js
 { title = 'AI Wins';  sub = 'The AI edged you out this time.';  cls = 'lose'; wins.ai++;  sndLose(); }
@@ -244,7 +268,7 @@ render(); sndNoMatch(); setMsg('不匹配', 'bad');
 { title = 'AI获胜';  sub = 'AI这次略胜一筹。';  cls = 'lose'; wins.ai++;  sndLose(); }
 ```
 
-### 12d — Tie outcome
+### 14d — Tie outcome
 **Find**:
 ```js
 { title = "It's a Tie"; sub = 'Dead even. Impressive.';          cls = 'tie';              sndTie(); }
@@ -254,8 +278,8 @@ render(); sndNoMatch(); setMsg('不匹配', 'bad');
 { title = '平局'; sub = '势均力敌，真厉害。';          cls = 'tie';              sndTie(); }
 ```
 
-### 12e — Leaderboard player name
-**Location**: Inside `updateLeaderboard()`, the entries array.
+### 14e — Leaderboard player name (desktop + mobile)
+**Location**: Inside `updateLeaderboard()`, the entries array. This single change affects both the desktop leaderboard rows and the mobile leaderboard strip, since both loops read from the same `entries` array.
 
 **Find**:
 ```js
@@ -266,8 +290,8 @@ render(); sndNoMatch(); setMsg('不匹配', 'bad');
 { name: '你', wins: wins.you, isYou: true },
 ```
 
-### 12f — Leaderboard avatar label
-**Location**: Inside `updateLeaderboard()`, where avatar text is set.
+### 14f — Desktop leaderboard avatar label
+**Location**: Inside `updateLeaderboard()`, the desktop loop.
 
 **Find**:
 ```js
@@ -278,9 +302,23 @@ av.textContent = e.isYou ? 'YOU' : 'AI';
 av.textContent = e.isYou ? '你' : 'AI';
 ```
 
+### 14g — Mobile leaderboard strip name and crown
+**Location**: Inside `updateLeaderboard()`, the mobile strip loop.
+
+**Find**:
+```js
+nm.textContent = e.name + (hasLead ? ' 👑' : '');
+```
+**Replace with**:
+```js
+nm.textContent = e.name + (hasLead ? ' 👑' : '');
+```
+
+This line does not need changing — `e.name` is already sourced from the `entries` array updated in 14e. The 👑 emoji is universal. This entry is included for completeness so the translator knows it has been checked.
+
 ---
 
-## Part 13 — Font size adjustments (recommended)
+## Part 15 — Font size adjustments (recommended)
 
 Chinese characters are visually denser than Latin letters at the same point size. These selectors are the most likely to need minor size tweaks after translation. Only change `font-size` — do not touch padding, border-radius, or layout properties.
 
@@ -295,11 +333,14 @@ Chinese characters are visually denser than Latin letters at the same point size
 | `#lb-title` | 10px | 11px |
 | `#timer-label` | 10px | 11px |
 | `.mob-label` | 9px | 10px (mobile bar labels — 9px Chinese is hard to read) |
+| `#mob-lb-title` | 9px | 10px (mobile leaderboard title) |
+| `#mob-ai-label` | 9px | 10px (AI mini-board label) |
+| `.mob-lb-name` | 11px | 11px (no change — adequate for Chinese at this size) |
 | `.rules-list` | 12px | 13px |
 
 ---
 
-## Part 14 — Complete string reference table
+## Part 16 — Complete string reference table
 
 Every English string in the file and its Chinese replacement. Strings marked "unchanged" should be left exactly as they are.
 
@@ -323,6 +364,8 @@ Every English string in the file and its Chinese replacement. Strings marked "un
 | Desktop timer label | Time | 时间 |
 | Mobile bar You label | You | 你 |
 | Mobile bar AI label | AI | unchanged |
+| Mobile leaderboard strip title | Leaderboard | 排行榜 |
+| AI mini-board label | AI Board | AI棋盘 |
 | AI board label (desktop) | AI | unchanged |
 | Player board label (desktop) | You | 你 |
 | Leaderboard title (desktop) | Leaderboard | 排行榜 |
@@ -340,7 +383,7 @@ Every English string in the file and its Chinese replacement. Strings marked "un
 
 ---
 
-## Part 15 — Verification checklist
+## Part 17 — Verification checklist
 
 After making all changes, confirm every item before shipping.
 
@@ -362,9 +405,11 @@ After making all changes, confirm every item before shipping.
 - [ ] Desktop timer label reads `时间`
 - [ ] Mobile bar `You` label reads `你` (inside `#mobile-bar`, first `.mob-label`)
 - [ ] Mobile bar `AI` label is unchanged (inside `#mobile-bar`, second `.mob-label`)
+- [ ] Mobile leaderboard strip title (`#mob-lb-title`) reads `排行榜`
+- [ ] AI mini-board label (`#mob-ai-label`) reads `AI棋盘`
 - [ ] Desktop player board label reads `你`
 - [ ] Desktop AI board label is unchanged
-- [ ] Leaderboard title reads `排行榜`
+- [ ] Leaderboard title (`#lb-title`) reads `排行榜`
 - [ ] New Game button reads `新游戏`
 - [ ] `setMsg` no-match call passes `'不匹配'`
 - [ ] Win title in `showEndModal()` reads `'你赢了！'`
@@ -373,7 +418,7 @@ After making all changes, confirm every item before shipping.
 - [ ] Lose subtitle reads `'AI这次略胜一筹。'`
 - [ ] Tie title reads `'平局'`
 - [ ] Tie subtitle reads `'势均力敌，真厉害。'`
-- [ ] `updateLeaderboard()` player name entry is `'你'`
-- [ ] `updateLeaderboard()` avatar label uses `'你'` for player, `'AI'` for AI
+- [ ] `updateLeaderboard()` player name entry is `'你'` — this flows into both desktop rows and mobile strip entries automatically
+- [ ] `updateLeaderboard()` desktop avatar label uses `'你'` for player, `'AI'` for AI
 - [ ] No CSS class names, IDs, JS variable names, function names, or `onclick` attributes have been changed
 - [ ] Game runs correctly on both desktop and mobile after all changes — open in a browser, resize to mobile width, and play a full round to confirm
